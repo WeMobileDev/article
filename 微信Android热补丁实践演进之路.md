@@ -53,14 +53,14 @@
 事实上，Android官方也使用热补丁技术实现Instant Run。它分为Hot Swap、Warm Swap与Cold Swap三种方式，大家可以参考[英文介绍](https://medium.com/google-developers/instant-run-how-does-it-work-294a1633367f#.c088qhdxu)，也可以看参考文章中的翻译稿。最新的Instant App应该也是采用类似的原理，但是Google Play是不允许下发代码的，这个海外App需要注意一下。
 
 ## 微信热补丁技术的演进之路 ##
-在了解补丁技术可以与适合做什么之后，我们回到技术本身。由于[Dexposed](https://github.com/alibaba/dexposed)无法支持全平台，这是任何商业产品所无法容忍。所以这里我们只简单介绍Andfix、QZone、微信几套方案的实现，以及它们方案面临着的问题，大家也可以参考资料中的[各大热补丁方案分析和比较](http://blog.zhaiyifan.cn/2015/11/20/HotPatchCompare/)一文。
+在了解补丁技术可以与适合做什么之后，我们回到技术本身。由于[Dexposed](https://github.com/alibaba/dexposed)无法支持全平台，并不适合应用到商业产品中。所以这里我们只简单介绍Andfix、QZone、微信几套方案的实现，以及它们方案面临着的问题，大家也可以参考资料中的[各大热补丁方案分析和比较](http://blog.zhaiyifan.cn/2015/11/20/HotPatchCompare/)一文。
 
 ###一. AndFix###
-[AndFix](https://github.com/alibaba/AndFix)采用native hook的方式，这套方案直接使用`dalvik_replaceMethod`替换class中方法的实现。由于它并没有整体替换class, 而field在class中的相对地址在class加载时已确定，所以AndFix无法支持新增或者删除filed的情况(通过替换`init`与`clint`只可以修改field的数值)。
+[AndFix](https://github.com/alibaba/AndFix)采用native hook的方式，这套方案直接使用`dalvik_replaceMethod`替换class中方法的实现。由于它并没有整体替换class, 而field在class中的相对地址在class加载时已确定，所以AndFix无法支持新增或者删除filed的情况(通过替换`init`与`clinit`只可以修改field的数值)。
 
 ![](assets/tinker/andfix.png)
 
-也正因如此，Andfix可以支持的补丁场景非常有限，仅仅可以使用它来修复特定问题。结合之前的发布流程，我们更希望补丁对开发者是不感知的，即他不需要清楚这个修改是对补丁版本还是正式发布版本(事实上我们也是使用git分支管理+cherry-pick方式)。另一方面，使用native替换将会面临比较复杂的兼容性问题。
+也正因如此，Andfix可以支持的补丁场景相对有限，仅仅可以使用它来修复特定问题。结合之前的发布流程，我们更希望补丁对开发者是不感知的，即他不需要清楚这个修改是对补丁版本还是正式发布版本(事实上我们也是使用git分支管理+cherry-pick方式)。另一方面，使用native替换将会面临比较复杂的兼容性问题。
 
 ![](assets/tinker/andfixend.png)
 
@@ -87,7 +87,7 @@ QZone方案并没有开源，但在github上的[Nuwa](https://github.com/jasonro
 
 这里是因为在dex2oat时`fast*`已经将类能确定的各个地址写死。如果运行时补丁包的地址出现改变，原始类去调用时就会出现地址错乱。这里说的可能不够详细，事实上微信当时为了查清这两个问题，也花费了一定的时间将Dalvik跟Art的流程基本搞透。若大家对这里感兴趣，后续在单独的文章详细论述。
 
-总的来说，QZone方案好处在于开发透明，简单，这一套方案目前的应用成功率也是最高的。但是在补丁包大小与性能损耗上面有一定的局限性。微信对于性能要求较高，所以我们也没有采用这套方案。
+总的来说，Qzone方案好处在于开发透明，简单，这一套方案目前的应用成功率也是最高的，但在补丁包大小与性能损耗上有一定的局限性。特别是无论我们是否真正应用补丁，都会因为插桩导致对程序运行时的性能产生影响。微信对于性能要求较高，所以我们也没有采用这套方案。
 
 ###三. 微信热补丁方案###
 
@@ -149,7 +149,10 @@ QZone方案并没有开源，但在github上的[Nuwa](https://github.com/jasonro
 - 10分钟粒度的补丁监控信息上报。
 
 ###三. 补丁成功率现状###
-使用QZone方案，微信的成功率大约在98.5%左右。使用Tinker大约只有96%左右，主要原因在于空间不足以及后台进程被杀。在这里我们也在尝试使用重试的方式以及降低合成的耗时与内存，从而提升成功率。
+> 应用成功率= 补丁版本人数/补丁发布前该版本人数
+> 由于可能存在基准或补丁版本用户安装了其他版本，所以本统计结果应略为偏低，但它能现实的反应补丁的线上覆盖情况。
+
+使用Qzone方案，微信补丁在10天后的应用成功率大约在98.5%左右。使用Tinker大约只有95.5%左右，主要原因在于空间不足以及后台进程被杀。在这里我们也在尝试使用重试的方式以及降低合成的耗时与内存，从而提升成功率。
 
 热补丁技术发展的很快，Android推出的Instant App也令人期待。但是在国内，似乎我们还是指望自己更靠谱一点。每一个的应用的需求都不太一致，这里大致讲了一些微信的实践经验，希望对大家有帮助。
 
