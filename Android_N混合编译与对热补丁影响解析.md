@@ -95,7 +95,7 @@ methods: 297,302,303,424,427,665,668,669,700,756,757,759,760,761,765,766,768,772
 classes: 52,124,456,
 ```
 
-其中base.apk代表dex的位置，这里代表的是ClassN中的第一个dex。其他dex会使用类似base.apk:classes2.dex方式命名。后面的methods与classes代表的是它们在dex格式中的index，只有这些类与方法是我们需要在[spped-profile]模式中需要编译。
+其中base.apk代表dex的位置，这里代表的是ClassN中的第一个dex。其他dex会使用类似base.apk:classes2.dex方式命名。后面的methods与classes代表的是它们在dex格式中的index，只有这些类与方法是我们需要在[speed-profile]模式中需要编译。
 
 ###Android N的dex2oat编译
 在这里我们比较关心系统究竟是什么时候会去对应用做类似增量的编译，还有具体的编译流程是怎么样的？
