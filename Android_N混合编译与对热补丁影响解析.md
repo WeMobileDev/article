@@ -7,7 +7,13 @@
 我们遵循从问题出发的思路，针对华为提供的日志，我们看到微信在Android N上启动时会报`IllegalAccessError`。可以从`/data/user/0/com.tencent.mm/tinker/patch-a002c56d/dex/classes2.dex`看到，的确跟补丁是有关系的。
 
 ```
-java.lang.IllegalAccessError: Illegal class access: 'com.tencent.mm.ui.conversation.ConversationOverscrollListView' attempting to access 'com.tencent.mm.ui.conversation.ConversationOverscrollListView$c' (declaration of 'com.tencent.mm.ui.conversation.ConversationOverscrollListView' appears in /data/user/0/com.tencent.mm/tinker/patch-a002c56d/dex/classes2.dex)
+java.lang.IllegalAccessError: 
+Illegal class access: 
+'com.tencent.mm.ui.conversation.ConversationOverscrollListView' 
+attempting to access 
+'com.tencent.mm.ui.conversation.ConversationOverscrollListView$c' 
+(declaration of 'com.tencent.mm.ui.conversation.ConversationOverscrollListView' 
+appears in /data/user/0/com.tencent.mm/tinker/patch-a002c56d/dex/classes2.dex)
 ```
 
 但是在我们手上Android N却无法复现，同时跟华为的进一步沟通中，他们也明确只有一少部分N的用户会出现问题。这就很难办了，但是根据之前在art地址错乱的经验(似乎这里我还欠大家一篇分析文章)，跟这里似乎有点相似。
