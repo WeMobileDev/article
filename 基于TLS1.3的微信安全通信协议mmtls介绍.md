@@ -21,13 +21,12 @@
 
 #三、mmtls协议设计 #
 ##3.1 总体架构 ##
-![image](http://120.25.162.73/mmtls_image/1.jpg)
-　　
+![](assets/mmtls_image/1.jpg)
 
 　　业务层数据加上mmtls之后，由mmtls提供安全性，保护业务数据，这类似于http加上tls后，变成https，由tls保护http数据。mmtls处于业务层和原有的网络连接层之间，不影响原有的网络策略。对于微信来说这里的网络连接层就是微信长连接（私有协议）和微信短连接（http协议），都是基于TCP的。
 
 　　图1描述的是把mmtls看成一个整体，它所处的位置。进入mmtls内部，它包含三个子协议：Record协议、Handshake协议、Alert协议。这其实是和TLS类似的。它们之间的关系如下图：
-![image](http://120.25.162.73/mmtls_image/2.jpg)
+![](assets/mmtls_image/2.jpg)
 
 　　Handshake和Alert协议是Record协议的上层协议，业务层协议（Application Protocol）也是record协议的上层协议，在Record协议包中有一个字段，用来区分当前这个Record数据包的上层协议是Handshake、Alert还是业务协议数据包。Handshake协议用于完成Client与Server的握手协商，协商出一个对称加密密钥Key以及其他密码材料，用于后续数据加密。Alert协议用于通知对端发生错误，希望对端关闭连接，目前mmtls为了避免server存在过多TCP Time-Wait状态，Alert消息只会server发送给client，由client主动关闭连接。
 
@@ -48,27 +47,27 @@
 - 密钥协商算法`ECDH_compute_key`，以对方的公钥和自己的私钥作为输入，计算出一个密钥Key，`ECDH_compute_key`算法使得通信双方计算出的密钥Key是一致的。
 
 　　这样一来Alice和Bob仅仅通过交换自己的公钥`ECDH_pub_key`，就可以在Internet这种公开信道上共享一个相同密钥Key，然后用这个Key作为对称加密算法的密钥，进行加密通信。
-![image](http://120.25.162.73/mmtls_image/3.jpg)
+![](assets/mmtls_image/3.jpg)
 
 　　但是这种密钥协商算法仍然存在一个问题。当Bob将他的`Bob_ECDH_pub_key`发送给Alice时，攻击者可以截获`Bob_ECDH_pub_key`，自己运行`ECDH_Generate_Key算法`产生一个公钥/私钥对，然后把他产生的公钥发送给Alice。同理，攻击者可以截获Alice发送给Bob的`Alice_ECDH_pub_key`，再运行`ECDH_Generate_Key算法`产生一个公钥/私钥对，并把这个公钥发送给Bob。Alice和Bob仍然可以执行协议，产生一个密钥Key。但实际上，Alice产生的密钥Key实际上是和攻击者Eve协商的；Bob产生的密钥Key也是和攻击者协商Eve的。这种攻击方法被称为中间人攻击（Man In The Middle Attack）。
-![image](http://120.25.162.73/mmtls_image/4.jpg)
+![](assets/mmtls_image/4.jpg)
 
 　　那么，有什么解决办法中间人攻击呢？产生中间人攻击的本质原因是协商过程中的数据没有经过端点认证，通信两端不知道收到的协商数据是来自对端还是来自中间人，因此单纯的“密钥协商”是不够的，还需要“带认证的密钥协商”。对数据进行认证其实有对称和非对称的两种方式：基于消息认证码（Message Authentication Code）的对称认证和基于签名算法的非对称认证。消息认证码的认证方式需要一个私密的Key，由于此时没有一个私密的Key，因此ECDH认证密钥协商就是ECDH密钥协商加上数字签名算法。在mmtls中我们采用的数字签名算法为ECDSA。
 
 　　双方密钥协商时，再分别运行签名算法对自己发出的公钥`ECDH_pub_key`进行签名。收到信息后，首先验证签名，如果签名正确，则继续进行密钥协商。注意到，由于签名算法中的公钥`ECDSA_verify_key`是一直公开的，攻击者没有办法阻止别人获取公钥，除非完全掐断发送方的通信。这样一来，中间人攻击就不存在了，因为Eve无法伪造签名。具体过程如图5所示：
-![image](http://120.25.162.73/mmtls_image/5.jpg)
+![](assets/mmtls_image/5.jpg)
 
 　　事实上，在实际通信过程中，只需要通信中某一方签名它的协商数据就可以保证不被中间人攻击，mmtls就是只对Server做认证，不对Client做认证，因为微信客户端发布出去后，任何人都可以获得，只要能够保证客户端程序本身的完整性，就相当于保证了客户端程序是由官方发布的，为认证合法的客户端，而客户端程序本身的完整性不是mmtls协议保护的范畴。在这一点上，TLS要复杂一些，TLS作为一个通用的安全通信协议，可能会存在一些需要对Client进行认证的场合，因此TLS提供了可选的双方相互认证的能力，通过握手协商过程中选择的CipherSuite是什么类型来决定是否要对Server进行认证，通过Server是否发送CertificateRequest握手消息来决定是否要对Client进行认证。由于mmtls不需要对Client做认证，在这块内容上比TLS简洁许多，更加轻量级。
 #####2.PSK密钥协商#####
 　　PSK是在一次ECDH握手中由server下发的内容，它的大致数据结构为`PSK{key，ticket{key}}`，即PSK包含一个用来做对称加密密钥的key明文，以及用`ticket_key`对`key`进行加密的密文`ticket`，当然PSK是在安全信道中下发的，也就是说在网络中进行传输的时候PSK是加密的，中间人是拿不到`key`的。其中`ticket_key`只有server才知道，由server负责私密保存。
 
 　　PSK协商比较简单，Client将PSK的`ticket{key}`部分发送给Server，由于只有Server才知道`ticket_key`，因此key是不会被窃听的。Server拿到ticket后，使用`ticket_key`解密得到key，然后Server用基于协商得到的密钥key，对协商数据计算消息认证码来认证，这样就完成了PSK认证密钥协商。PSK认证密钥协商使用的都是对称算法，性能上比ECDH认证密钥协商要好很多。
-![image](http://120.25.162.73/mmtls_image/6.jpg)
+![](assets/mmtls_image/6.jpg)
 ####　　3.2.1.2 0-RTT密钥协商####
 　　上述的两种认证密钥协商方式（1-RTT ECDHE, 1-RTT PSK）都需要一个额外RTT去获取对称加密key，在这个协商的RTT中是不带有业务数据的，全部都是协商数据。那么是否存在一种密钥协商方式是在握手协商的过程中就安全地将业务数据传递给对端呢？答案是有的，TLS1.3草案中提到了0-RTT密钥协商的方法。
 #####1. 0-RTT ECDH密钥协商#####
 　　0-RTT 握手想要达到的目标是在握手的过程中，捎带业务数据到对端，这里难点是如何在客户端发起协商请求的时候就生成一个可信的对称密钥加密业务数据。在1-RTT ECDHE中，Client生成一对公私钥`(cli_pub_key, cli_pri_key)`，然后将公钥`cli_pub_key`传递给Server，然后Server生成一对公私钥`(svr_pub_key, svr_pri_key)`并将公钥`svr_pub_key`传递给Client，Client收到`svr_pub_key`后才能计算出对称密钥。上述过程`(svr_pub_key, svr_pri_key)`由于是临时生成的，需要一个RTT将`svr_pub_key`传递给客户端，如果我们能够预先生成一对公私钥`(static_svr_pub_key, static_svr_pri_key)`并将`static_svr_pub_key`预置在Client中，那么Client可以在发起握手前就通过`static_svr_pub_ke`和`cli_pub_key`生成一个对称密钥`SS(Static Secret)`，然后用SS加密第一个业务数据包（实际上是通过SS衍生的密钥对业务数据进行加密，后面详述），这样将SS加密的业务数据包和`cli_pub_key`一起传给Server，Server通过`cli_pub_key`和`static_server_private_key`算出SS，解密业务数据包，这样就达到了0-RTT密钥协商的效果。
-![image](http://120.25.162.73/mmtls_image/7.jpg)
+![](assets/mmtls_image/7.jpg)
 
 　　这里说明一下：ECDH协商中，如果公私钥对都是临时生成的，一般称为ECDHE，因此1-RTT的ECDH协商方式被称为1-RTT ECDHE握手，0-RTT 中有一个静态内置的公钥，因此称为0-RTT ECDH握手。
 #####　　2. 0-RTT PSK密钥协商#####
@@ -78,7 +77,7 @@
 　　PFS（perfect forward secrecy），中文可叫做完全前向保密。它要求一个密钥被破解，并不影响其他密钥的安全性，反映的密钥协商过程中，大致的意思是用来产生会话密钥的长期密钥泄露出去，不会造成之前通信时使用的会话密钥的泄露；或者密钥协商方案中不存在长期密钥，所有协商材料都是临时生成的。
 
 　　上面所述的0-RTT ECDH密钥协商加密的数据的安全性依赖于长期保存的密钥`static_svr_pri_key`，如果`static_svr_pri_key`泄露，那么所有基于0-RTT ECDH协商的密钥SS都将被轻松计算出来，它所加密的数据也没有任何保密性可言，为了提高前向安全性，我们在进行0-RTT ECDH协商的过程中也进行ECDHE协商，这种协商方式称为0-RTT ECDH-ECDHE密钥协商。如下图所示：
-![image](http://120.25.162.73/mmtls_image/8.jpg)
+![](assets/mmtls_image/8.jpg)
 　　这样，我们基于`static_svr_pri_key`保护的数据就只有第一个业务数据包AppData，后续的包都是基于ES(Ephemeral Secret)对业务数据进行保护的。这样即使`static_svr_pri_key`泄露，也只有连接的第一个业务数据包能够被解密，提高前向安全性。
 
 　　同样的，0-RTT PSK密钥协商加密的数据的安全性依赖于长期保存密钥`ticket_key`，如果`ticket_key`泄露，那么所有基于`ticket_key`进行保护的数据都将失去保密性，因此同样可以在0-RTT PSK密钥协商的过程中，同时完成ECDHE密钥协商，提高前向安全性。
@@ -102,7 +101,7 @@
 ###　　3.2.3  mmtls对认证密钥协商的选择###
 　　上面一共介绍了2种1-RTT 密钥协商方式和4种0-RTT 密钥协商方式。
 
-![image](http://120.25.162.73/mmtls_image/9.jpg)
+![](assets/mmtls_image/9.jpg)
 
 　　PSK握手全程无非对称运算，Server性能消耗小，但前向安全性弱，ECDHE握手有非对称运算，Server性能消耗大，但前向安全性相对更强，那么如何结合两者优势进行密钥协商方式的选择呢？
 
@@ -137,7 +136,7 @@
 
 　　在前文中，我用`pre_master_secret`代表握手协商得到的对称密钥，在TLS1.2之前确实叫这个名字，但是在TLS1.3中由于需要支持0-RTT握手，协商出来的对称密钥可能会有两个，分别称为Static Secret(SS)和Ephemeral Secret（ES）。从TLS1.3文档中截取一张图进行说明一下：
 
-![image](http://120.25.162.73/mmtls_image/10.jpg)
+![](assets/mmtls_image/10.jpg)
 
 　　上图中Key Exchange就是代表握手的方式，在1-RTT ECDHE握手方式下，
 
@@ -165,7 +164,7 @@
 
 　　参数pseudorandom key是已经足够伪随机的密钥扩展材料，HKDF-Extract的返回值可以作为`pseudorandom key`，`info`用来区分扩展出来的Key是做什么用，`out_key_length`表示希望扩展输出的key有多长。mmtls最终使用的密钥是有HKDF-Expand扩展出来的。mmtls把info参数分为：`length，label，handshake_hash`。其中length等于`out_key_length`，`label`是标记密钥用途的固定字符串，`handshake_hash`表示握手消息的hash值，这样扩展出来的密钥保证连接内唯一。
 
-![image](http://120.25.162.73/mmtls_image/11.jpg)
+![](assets/mmtls_image/11.jpg)
 
 　　TLS1.3草案中定义的密钥扩展方式比较繁琐，如上图所示。为了得到最终认证加密的对称密钥，需要做3次HDKF-Extract和4次HKDF-Expand操作，实际测试发现，这种密钥扩展方式对性能影响是很大的，尤其在PSK握手情况（PSK握手没有非对称运算）这种密钥扩展方式成为性能瓶颈。TLS1.3之所以把密钥扩展搞这么复杂，本质上还是因为TLS1.3是一个通用的协议框架，具体的协商算法是可以选择的，在有些协商算法下，协商出来的`pre_master_key`（SS和ES）就不满足某些特性（如随机性不够），因此为了保证无论选择什么协商算法，用它来进行通信都是安全的，TLS1.3就在密钥扩展上做了额外的工作。而mmtls没有TLS1.3这种包袱，可以针对微信自己的网络通信特点进行优化（前面在握手方式选择上就有体现）。mmtls在不降低安全性的前提下，对TLS1.3的密钥扩展做了精简，使得性能上较TLS1.3的密钥扩展方式有明显提升。
 
