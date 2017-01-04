@@ -218,7 +218,7 @@ apple的文档里面也有很详细的描述：
 ###socket connect的方式(支持iOS9和Android)
 这里的方案是直接使用v4 IP地址和v6 IP地址进行连接，通过结果来确认当前客户端可用IP stack。
 
-	_test_connect(int pf, struct sockaddr *addr, size_t addrlen) {
+	_test_connect(int pf, struct sockaddr *addr, socklen_t addrlen) {
 	    int s = socket(pf, SOCK_STREAM, IPPROTO_TCP);
 	    if (s < 0)
 	        return 0;
@@ -285,7 +285,7 @@ apple的文档里面也有很详细的描述：
 继续研究发现，getaddrinfo的`AI_ADDRCONFIG` flags有点像我们需要实现的功能，要去掉IP，就必须要知道当前的IP stack。它是怎么样实现的？
 
 	//Android的AI_ADDRCONFIG 功能的sample
-	_test_connect(int pf, struct sockaddr *addr, size_t addrlen) {
+	_test_connect(int pf, struct sockaddr *addr, socklen_t addrlen) {
 	    int s = socket(pf, SOCK_DGRAM, IPPROTO_UDP);
 	    if (s < 0)
 	        return 0;
