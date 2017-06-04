@@ -193,4 +193,7 @@
 3. 高性能。使用0-RTT握手方式没有增加原有Client和Server的交互次数；和TLS1.3比，优化了握手方式和密钥扩展方式。　
 4. 高可用性。服务器的过载保护，确保服务器能够在容灾模式下提供安全级别稍低的有损服务。
 
-#五、参考资料 #1. [TLS协议分析与现代加密通信协议设计](http://blog.helong.info/blog/2015/09/06/tls-protocol-analysis-and-crypto-protocol-design/)2. [RFC5246](https://tools.ietf.org/html/rfc5246)3. [The Transport Layer Security (TLS) Protocol Version 1.3](https://tlswg.github.io/tls13-spec/)
+#五、参考资料 #
+1. [TLS协议分析与现代加密通信协议设计](http://blog.helong.info/blog/2015/09/07/tls-protocol-analysis-and-crypto-protocol-design/)
+2. [RFC5246](https://tools.ietf.org/html/rfc5246)
+3. [The Transport Layer Security (TLS) Protocol Version 1.3](https://tlswg.github.io/tls13-spec/)
