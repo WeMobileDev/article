@@ -181,8 +181,7 @@ db.setTraceCallback(myTrace);
 
 到 GitHub 关注 WCDB 的最新动态。
 
-使用上的疑问（包括 iOS 和 Android）可以加QQ群讨论哦。
-[点击链接加入群【WCDB技术交流群】](https://jq.qq.com/?_wv=1027&k=4AnuKCu)
-（加群备注 WCDB 讨论）
+https://github.com/Tencent/wcdb
+
 
 [sqlite-fts]: https://sqlite.org/fts3.html
