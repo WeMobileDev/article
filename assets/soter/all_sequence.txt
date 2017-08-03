@@ -1,0 +1,36 @@
+title: Check support SOTER
+App Client->App Server: device_model_info
+App Server->Wechat\nOpen\nPlatform: device_model_info \n& access_token
+Note over Wechat\nOpen\nPlatform: check access permission
+Wechat\nOpen\nPlatform->WeChat Server: device_model_info
+Note over WeChat Server: check support
+WeChat Server-->Wechat\nOpen\nPlatform: support or not
+Wechat\nOpen\nPlatform-->App Server: support or not
+App Server-->App Client: support or not
+
+title: Upload ASK public key
+App Client->App Server: ASKModelJSON \n&JSONSignature
+App Server->Wechat\nOpen\nPlatform: ASKModelJSON \n&JSONSignature\n&access_token
+Note over Wechat\nOpen\nPlatform: check access permission
+Wechat\nOpen\nPlatform->TAM server: ASKModelJSON \n&JSONSignature
+Note over TAM server: verify(ASKModelJSON, \nJSONSignature, \nATTK_pub[device])
+TAM server-->Wechat\nOpen\nPlatform: verify result
+Wechat\nOpen\nPlatform-->App Server: verify result
+Note over App Server: save ASK public key\nof the device
+App Server-->App Client: verify result
+
+title: Upload Auth Key public key
+App Client->App Server: AuthKeyModelJSON \n&JSONSignature
+Note over App Server: verify(AuthKeyModelJSON, \nJSONSignature, \nASK_pub[device])
+Note over App Server: save authkey_pub \nif verified
+App Server-->App Client: verify result
+
+title: Get Challenge
+App Client->App Server: No parameter
+Note over App Server: generate challenge\nand save in memory\nfor use
+App Server-->App Client: challenge string
+
+title: Verify the Final Signature
+App Client->App Server: SignatureInfoJSON\n&signature\n&saltlength
+Note over App Server: verify(SignatureInfoJSON, \nsignature, authkey_pub[device][scene])\nwith given saltlength
+App Server-->App Client: verify result 
