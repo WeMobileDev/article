@@ -1,7 +1,6 @@
 title: Check support SOTER
 App Client->App Server: device_model_info
 App Server->Wechat\nOpen\nPlatform: device_model_info \n& access_token
-Note over Wechat\nOpen\nPlatform: check access permission
 Wechat\nOpen\nPlatform->WeChat Server: device_model_info
 Note over WeChat Server: check support
 WeChat Server-->Wechat\nOpen\nPlatform: support or not
@@ -11,7 +10,6 @@ App Server-->App Client: support or not
 title: Upload ASK public key
 App Client->App Server: ASKModelJSON \n&JSONSignature
 App Server->Wechat\nOpen\nPlatform: ASKModelJSON \n&JSONSignature\n&access_token
-Note over Wechat\nOpen\nPlatform: check access permission
 Wechat\nOpen\nPlatform->TAM server: ASKModelJSON \n&JSONSignature
 Note over TAM server: verify(ASKModelJSON, \nJSONSignature, \nATTK_pub[device])
 TAM server-->Wechat\nOpen\nPlatform: verify result
