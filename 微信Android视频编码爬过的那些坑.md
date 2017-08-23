@@ -94,7 +94,7 @@ MediaCodec是API 16之后Google推出的用于音视频编解码的一套偏底�
 	MediaFormat.KEY_LEVEL
 	```
 	
-	但问题是，对于Profile，Level, Bitrate mode这些设置，在大部分手机上都是不支持的，即使是设置了最终也不会生效，例如设置了Profile为high，最后出来的视频依然还会是Baseline，Shit....
+	但问题是，对于Profile，Level, Bitrate mode这些设置，在大部分手机上都是不支持的，即使是设置了最终也不会生效，例如设置了Profile为high，最后出来的视频依然还会是Baseline....
 	
 	这个问题，在7.0以下的机器几乎是必现的，其中一个可能的原因是，Android在源码层级[hardcode](http://androidxref.com/6.0.1_r10/xref/frameworks/av/media/libstagefright/ACodec.cpp)了profile的的设置：
 	
@@ -219,7 +219,7 @@ sws_scale(mScaleYuvCtxPtr,
 
 对于旋转的算法，如果是纯C实现的代码，一般来说是个O（n^2 ） 复杂度的算法，如果是旋转960x540的yuv帧数据，在nexus 6p上，每帧旋转也需要**30ms+**，这显然也是不能接受的。
 
-在这里我们换个思路，能不能不对YUV帧进行旋转？（当然是可以的6666）
+在这里我们换个思路，能不能不对YUV帧进行旋转？
 
 事实上在mp4文件格式的头部，我们可以指定一个旋转矩阵，具体来说是在**moov.trak.tkhd box**里面指定，视频播放器在播放视频的时候，会在读取这里矩阵信息，从而决定视频本身的旋转角度，位移，缩放等，具体可以参考下苹果的[文档](https://developer.apple.com/library/content/documentation/QuickTime/QTFF/QTFFChap4/qtff4.html#//apple_ref/doc/uid/TP40000939-CH206-18737)
 
