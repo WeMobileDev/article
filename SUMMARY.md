@@ -8,6 +8,7 @@
 * [IPv6 socket 编程](IPv6 socket编程.md)
 * [微信 iOS SQLite 源码优化实践](微信iOS SQLite源码优化实践.md)
 * [聊聊苹果的 Bug - iOS 10 nano free crash](聊聊苹果的Bug - iOS 10 nano_free Crash.md)
+* [微信Android视频编码爬过的那些坑](微信Android视频编码爬过的那些坑.md)
 
 ## 0x10 开源组件
 
